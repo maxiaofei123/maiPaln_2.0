@@ -2,22 +2,169 @@
 //  AppDelegate.m
 //  Mfeiji
 //
-//  Created by susu on 14-11-21.
+//  Created by susu on 14-10-20.
 //  Copyright (c) 2014年 susu. All rights reserved.
 //
 
 #import "AppDelegate.h"
+#import "MainViewController.h"
+#import "Exam_loginViewController.h"
 
-@interface AppDelegate ()
+@interface AppDelegate ()<UIScrollViewDelegate>
+{
+    UIScrollView* scrollView;
+    UIPageControl *pageControl;
+}
 
 @end
 
 @implementation AppDelegate
 
-
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    // 启动页 2秒后消失
+    [NSThread sleepForTimeInterval:2.0];
+    self.window.backgroundColor = [UIColor blackColor];
+   [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent];
+    //判断程序是不是第一次启动
+    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"everLaunched"]) {
+        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"everLaunched"];
+        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"firstLaunch"];
+    }
+    else{
+        [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"firstLaunch"];
+    }
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"firstLaunch"]){
+        //初始化用户名
+        [[NSUserDefaults standardUserDefaults] setObject:@"麦飞机会员" forKey:@"userName"];
+        [[NSUserDefaults standardUserDefaults] setObject:@"无" forKey:@"avatar"];
+        //显示引导页
+        CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
+        scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, self.window.frame.size.width, screenHeight)];
+        scrollView.backgroundColor = [UIColor whiteColor];
+        scrollView.showsHorizontalScrollIndicator = NO;
+        scrollView.showsVerticalScrollIndicator = NO;
+        scrollView.contentSize = CGSizeMake(self.window.frame.size.width *4, screenHeight);
+        scrollView.bounces = NO;
+        scrollView.delegate =self;
+        scrollView.pagingEnabled = YES;
+        [self.window addSubview:scrollView];
+        
+        for (int i=0; i<4; i++) {
+            UIImageView* imageView = [[UIImageView alloc] initWithFrame:CGRectMake(i*self.window.frame.size.width, 0, self.window.frame.size.width, screenHeight)];
+            imageView.contentMode = UIViewContentModeScaleAspectFill;
+            imageView.image = [UIImage imageNamed:[NSString stringWithFormat:@"引导页%d.jpg",i+1]];
+            [scrollView addSubview:imageView];
+            if (i ==3) {
+                
+                UIButton* start = [UIButton buttonWithType:UIButtonTypeCustom];
+                start.frame = CGRectMake(0, 0, 80, 34);
+                [start setCenter:CGPointMake(self.window.frame.size.width*3 +(self.window.frame.size.width/2),self.window.frame.size.height-100)];
+                [start addTarget:self action:@selector(intoNext) forControlEvents:UIControlEventTouchUpInside];
+                [start setImage:[UIImage imageNamed:@"tiYan.png"] forState:UIControlStateNormal];
+                [scrollView addSubview:start];
+            }
+        }
+        pageControl=[[UIPageControl alloc]initWithFrame:CGRectMake(0, self.window.frame.size.height-160, self.window.frame.size.width, 3)];
+        pageControl.backgroundColor=[UIColor clearColor];
+        pageControl.currentPage = 0;
+        pageControl.numberOfPages = 4;
+        pageControl.currentPageIndicatorTintColor=[UIColor whiteColor];
+        pageControl.pageIndicatorTintColor = [UIColor colorWithRed:56./255 green:66./255 blue:96./255 alpha:1.];
+        [self.window addSubview:pageControl];
+        
+    }else
+    {
+        [self intoNext];
+    }
+
+    [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent animated:NO];
+    [[UIApplication sharedApplication] setStatusBarHidden:NO];
+    [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent];
+    [self.window makeKeyAndVisible];
+    // 后台间隔请求
+    
+    //向微信注册
+    [WXApi registerApp:kWXAPP_ID];
+    [WXApi registerApp:kWXAPP_ID withDescription:@"weixin"];
     return YES;
+}
+
+
+- (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url
+{
+//    [WeiboSDK handleOpenURL:url delegate:self] ;
+    return [WXApi handleOpenURL:url delegate:self];
+}
+
+- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
+{
+    return [WXApi handleOpenURL:url delegate:self];
+}
+
+////授权后回调 WXApiDelegate
+//-(void)onResp:(BaseReq *)resp
+//{
+//    SendAuthResp *aresp = (SendAuthResp *)resp;
+//    if (aresp.errCode== 0) {
+//        NSString *code = aresp.code;
+////        NSDictionary *dic = @{@"code":code};
+//        [self getAccess_token:aresp.code];
+//    }
+//}
+-(void)getAccess_token:(NSString *)code
+{
+    NSString *url =[NSString stringWithFormat:@"https://api.weixin.qq.com/sns/oauth2/access_token?appid=%@&secret=%@&code=%@&grant_type=authorization_code",kWXAPP_ID,kWeiXinAppSecret,code];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSURL *zoneUrl = [NSURL URLWithString:url];
+        NSString *zoneStr = [NSString stringWithContentsOfURL:zoneUrl encoding:NSUTF8StringEncoding error:nil];
+        NSData *data = [zoneStr dataUsingEncoding:NSUTF8StringEncoding];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (data) {
+                NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+                NSLog(@"dic =%@",dic);
+                
+                //                self.access_token.text = [dic objectForKey:@"access_token"];
+                //                self.openid.text = [dic objectForKey:@"openid"];
+                [self getUserInfo:[dic objectForKey:@"access_token"] openId:[dic objectForKey:@"openid"]];
+                
+            }
+        });
+    });
+}
+-(void)getUserInfo:(NSString *)accessToken openId:(NSString *)open_id
+{
+    NSString *url =[NSString stringWithFormat:@"https://api.weixin.qq.com/sns/userinfo?access_token=%@&openid=%@",accessToken,open_id];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSURL *zoneUrl = [NSURL URLWithString:url];
+        NSString *zoneStr = [NSString stringWithContentsOfURL:zoneUrl encoding:NSUTF8StringEncoding error:nil];
+        NSData *data = [zoneStr dataUsingEncoding:NSUTF8StringEncoding];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (data) {
+                NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+                NSLog(@"nike dic =%@",dic);
+                //                self.nickname.text = [dic objectForKey:@"nickname"];
+                //                self.wxHeadImg.image = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[dic objectForKey:@"headimgurl"]]]];
+                //
+            }
+        });
+        
+    });
+}
+
+
+-(void)scrollViewDidEndDecelerating:(UIScrollView *)ascrollView{
+    int x = ascrollView.contentOffset.x/Main_Screen_Width;
+    pageControl.currentPage=x;
+}
+
+-(void)intoNext
+{
+    [scrollView removeFromSuperview];
+    MainViewController  * mainView = [[MainViewController alloc] init];
+    self.window.rootViewController = mainView;
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application {
@@ -26,8 +173,7 @@
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {
-    // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-    // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application {

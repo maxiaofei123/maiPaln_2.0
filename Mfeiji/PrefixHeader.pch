@@ -1,0 +1,52 @@
+//
+//  PrefixHeader.pch
+//  Mfeiji
+//
+//  Created by susu on 14-10-23.
+//  Copyright (c) 2014年 susu. All rights reserved.
+//
+
+#ifndef Mfeiji_PrefixHeader_pch
+#define Mfeiji_PrefixHeader_pch
+// MainScreen Height&Width
+#define Main_Screen_Height      [[UIScreen mainScreen] bounds].size.height
+#define Main_Screen_Width       [[UIScreen mainScreen] bounds].size.width
+#define Version [[[UIDevice currentDevice] systemVersion] doubleValue]
+#define Height(xx) xx >= 7.0?64:0
+
+#define kAppDescription   @"*******"
+#define kWXAPP_ID @"wxb47d71dd757001bd"
+#define kWeiXinAppSecret @"85002a31330551d15ef269f503d14f4d"
+#define kWeiXinAccessToken   @"WeiXinAccessToken"
+#define kWeiXinOpenId             @"WeiXinOpenId"
+#define kWeiXinRefreshToken  @"WeiXinRefreshToken"
+#endif
+
+#ifdef __OBJC__
+#import <QuartzCore/QuartzCore.h>
+#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
+
+#import "WXApi.h"
+#import "WXApiObject.h"
+#import "AFNetworking.h"
+
+#import "M_examViewController.h"
+#import "M_myselfViewController.h"
+#import "M_schoolViewController.h"
+#import "M_setViewController.h"
+#import "M_homeViewController.h"
+#import "MainViewController.h"
+
+#import "AFNetworking.h"
+#import "MBProgressHUD.h"
+#import "MJRefresh.h"
+
+#import "UIImageView+WebCache.h"
+    MBProgressHUD *HUD;
+
+#import "Pulic_class.h"
+
+
+#endif
+
